@@ -2,10 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    // Garante que os ficheiros de fontes vão no bundle serverless do PDF
-    outputFileTracingIncludes: {
-      '/api/propostas/[id]': ['./lib/fonts/**'],
-    },
+    // pdfkit tem de ficar fora do bundle webpack (lê ficheiros .afm do disco);
+    // o file tracing da Vercel inclui o pacote completo de node_modules.
+    serverComponentsExternalPackages: ['pdfkit'],
   },
 };
 
