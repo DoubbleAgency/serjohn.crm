@@ -6,7 +6,8 @@ import { extractDriveImages } from '@/lib/drive';
  * GET /api/propostas/[id] — gera o PDF da proposta de importação de uma lead.
  * Substitui o antigo fluxo Make → Google Slides → PDF: agora é o CRM que gera.
  *
- * Auth: sessão de utilizador do CRM (o botão na página da lead abre este URL).
+ * Auth: sessão de utilizador do CRM (o botão na página da lead abre este URL),
+ * ou ?key=<IMPORT_API_SECRET> (link devolvido à extensão Chrome).
  * Fotos: leads.fotos (guardadas na importação mobile.de); fallback para a
  * pasta Drive (leads migradas do Notion).
  */
@@ -18,11 +19,24 @@ export async function GET(request, { params }) {
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (!session) {
+  const key = new URL(request.url).searchParams.get('key');
+  const keyOk = process.env.IMPORT_API_SECRET && key === process.env.IMPORT_API_SECRET;
+  if (!session && !keyOk) {
     return Response.json({ error: 'Sessão necessária. Faça login no CRM.' }, { status: 401 });
   }
 
-  const { data: lead } = await supabase.from('leads').select('*').eq('id', params.id).single();
+  let lead = null;
+  if (session) {
+    const { data } = await supabase.from('leads').select('*').eq('id', params.id).single();
+    lead = data;
+  } else {
+    // via ?key= (extensão): a leitura passa pela RPC que valida o segredo
+    const { data } = await supabase.rpc('ext_get_lead', {
+      p_secret: key,
+      p_lead: params.id,
+    });
+    lead = data;
+  }
   if (!lead) {
     return Response.json({ error: 'Lead não encontrada' }, { status: 404 });
   }
