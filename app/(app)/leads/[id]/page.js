@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import LeadForm from '@/app/components/LeadForm';
 import LeadActions from '@/app/components/LeadActions';
 import TaskCheck from '@/app/components/TaskCheck';
+import ImportAnuncio from '@/app/components/ImportAnuncio';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,10 @@ export default async function LeadDetailPage({ params }) {
       <LeadActions lead={lead} />
 
       <LeadForm lead={lead} cars={cars || []} vendedores={vendedores || []} />
+
+      <div style={{ marginTop: 16 }}>
+        <ImportAnuncio leadId={lead.id} />
+      </div>
 
       {(lead.mobile_de_url || lead.link_drive) && (
         <div className="card" style={{ marginTop: 16 }}>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import LeadsKanban from '@/app/components/LeadsKanban';
+import ImportAnuncio from '@/app/components/ImportAnuncio';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export default async function LeadsPage() {
         <h1>Leads</h1>
         <Link href="/leads/nova" className="btn">+ Nova lead</Link>
       </header>
+      <ImportAnuncio compacto />
       <LeadsKanban initialLeads={leads || []} />
     </>
   );

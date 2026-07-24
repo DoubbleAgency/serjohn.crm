@@ -311,3 +311,20 @@ label.check { display: flex; align-items: center; gap: 8px; font-size: 14px; fon
   padding-top: max(16px, env(safe-area-inset-top));
 }
 .overlay .modal { background: var(--white); border-radius: var(--radius); padding: 24px; max-width: 560px; width: 100%; }
+
+/* ---------- Importar anúncio (mobile.de) ---------- */
+.hint { font-size: 13px; color: var(--ink-60); line-height: 1.45; }
+.import-anuncio input[type="url"] {
+  font: inherit;
+  color: var(--ink);
+  border: 1px solid var(--ink-10);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--white);
+}
+.import-anuncio.compacto { margin-bottom: 16px; }
+.import-anuncio.compacto input[type="url"] { background: var(--white); }
+@media (max-width: 560px) {
+  .import-anuncio form { flex-direction: column; align-items: stretch; }
+  .import-anuncio form .btn { width: 100%; text-align: center; }
+}
