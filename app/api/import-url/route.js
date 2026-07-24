@@ -37,13 +37,24 @@ export async function GET(request) {
       });
       const html = await res.text();
       const dados = res.ok ? extraiDoHtml(html, url) : null;
+      let achados = null;
+      const padrao = sp.get('grep');
+      if (padrao) {
+        try {
+          const re = new RegExp(padrao, 'gi');
+          achados = [...new Set(html.match(re) || [])].slice(0, 25);
+        } catch (e) {
+          achados = ['regex inválido: ' + e.message];
+        }
+      }
       return Response.json({
         status: res.status,
         length: html.length,
         titulo: (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || null,
         temLdJson: /application\/ld\+json/i.test(html),
         temNextData: /__NEXT_DATA__/.test(html),
-        amostra: html.slice(0, 1200),
+        amostra: html.slice(Number(sp.get('from') || 0), Number(sp.get('from') || 0) + 1500),
+        achados,
         dados,
       });
     }
