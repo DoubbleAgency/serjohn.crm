@@ -10,11 +10,12 @@ import { createAnonClient } from '@/lib/supabase/anon';
  *                        extras, mobileDeUrl, photos: [...] } }
  *
  * Fluxo:
- *   1. Cria pasta no Drive + upload das fotos (para o PDF do Make, como antes)
- *   2. Atualiza a lead no Supabase (dados do carro + link Drive, estado → Proposta)
- *   3. Se MAKE_WEBHOOK_URL estiver definido, avisa o Make para gerar o PDF
+ *   1. Atualiza a lead no Supabase: dados do carro + URLs das fotos do anúncio
+ *      + estado → Proposta. O PDF é gerado pelo próprio CRM (/api/propostas/[id]).
+ *   2. (Opcional, legado) Se o Drive estiver configurado, cria pasta + upload
+ *      das fotos — não é necessário para nada, fica só como arquivo.
  *
- * Returns: { ok, folderUrl, photoCount, photoErrors, leadId }
+ * Returns: { ok, folderUrl, photoCount, photoErrors, leadId, propostaUrl }
  */
 export const maxDuration = 60;
 
@@ -39,7 +40,7 @@ export async function POST(request) {
   }
 
   try {
-    // 1. Pasta Drive + fotos (se o Drive estiver configurado)
+    // 1. (Opcional/legado) Pasta Drive + fotos, se o Drive estiver configurado
     let folderUrl = '';
     let photoCount = 0;
     let photoErrors = 0;
@@ -72,37 +73,21 @@ export async function POST(request) {
         extras: car.extras || null,
         mobileDeUrl: car.mobileDeUrl || null,
         linkDrive: folderUrl || null,
+        fotos: Array.isArray(car.photos) ? car.photos.slice(0, 40) : [],
       },
     });
     if (error) throw new Error(error.message);
 
-    // 3. Webhook do Make (gera o PDF da proposta) — opcional
-    if (process.env.MAKE_WEBHOOK_URL) {
-      try {
-        await fetch(process.env.MAKE_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            leadId,
-            nome: updated?.nome || '',
-            marca: car.marca || '',
-            modelo: car.modelo || '',
-            ano: car.ano || null,
-            kms: car.kms || null,
-            combustivel: car.combustivel || '',
-            valorVenda: car.valorVenda || null,
-            extras: car.extras || '',
-            mobileDeUrl: car.mobileDeUrl || '',
-            linkDrive: folderUrl,
-          }),
-        });
-      } catch (err) {
-        console.warn('[import] webhook Make falhou:', err.message);
-      }
-    }
-
     return Response.json(
-      { ok: true, leadId, folderUrl, photoCount, photoErrors },
+      {
+        ok: true,
+        leadId,
+        nome: updated?.nome || '',
+        folderUrl,
+        photoCount: Array.isArray(car.photos) ? car.photos.length : 0,
+        photoErrors,
+        propostaUrl: `/api/propostas/${leadId}`,
+      },
       { headers: corsHeaders() }
     );
   } catch (err) {

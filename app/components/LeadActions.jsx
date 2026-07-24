@@ -33,17 +33,21 @@ export default function LeadActions({ lead }) {
     const marca = partes[0] || '';
     const modelo = partes.slice(1).join(' ') || lead.carro_interesse || '';
     const anoMatch = (lead.carro_interesse || '').match(/\((\d{4})\)/);
+    const fotosLead = Array.isArray(lead.fotos) ? lead.fotos : [];
     const { data, error } = await supabase
       .from('cars')
       .insert({
         marca,
         modelo,
-        ano: anoMatch ? parseInt(anoMatch[1], 10) : null,
+        ano: anoMatch ? parseInt(anoMatch[1], 10) : lead.proposta_ano || null,
+        km: lead.proposta_km || null,
+        combustivel: lead.proposta_combustivel || null,
         preco: lead.valor_proposta || null,
         estado: 'Disponível',
         link_drive: lead.link_drive || null,
         mobile_de_url: lead.mobile_de_url || null,
-        descricao: `Importado da lead de ${lead.nome || '—'}.`,
+        descricao: lead.descricao_proposta || `Importado da lead de ${lead.nome || '—'}.`,
+        fotos: fotosLead,
       })
       .select('id')
       .single();
@@ -53,6 +57,14 @@ export default function LeadActions({ lead }) {
       return;
     }
     await supabase.from('leads').update({ car_id: data.id }).eq('id', lead.id);
+    // Copiar as fotos externas para o nosso Storage em segundo plano
+    if (fotosLead.length > 0) {
+      fetch('/api/stock/rehost-photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ carId: data.id, urls: fotosLead }),
+      }).catch(() => {});
+    }
     setBusy('');
     router.push(`/stock/${data.id}`);
     router.refresh();
@@ -63,6 +75,11 @@ export default function LeadActions({ lead }) {
       <button className="btn secondary small" onClick={tentativa} disabled={busy !== ''}>
         {busy === 't' ? 'A registar…' : '📞 Tentei contactar (sem resposta)'}
       </button>
+      {(lead.carro_interesse || (Array.isArray(lead.fotos) && lead.fotos.length > 0) || lead.link_drive) && (
+        <a className="btn small" href={`/api/propostas/${lead.id}`} target="_blank" rel="noreferrer">
+          📄 Gerar proposta (PDF)
+        </a>
+      )}
       {!lead.car_id && (lead.carro_interesse || lead.link_drive) && (
         <button className="btn secondary small" onClick={converterEmStock} disabled={busy !== ''}>
           {busy === 'c' ? 'A criar…' : '🚗 Converter em carro de stock'}

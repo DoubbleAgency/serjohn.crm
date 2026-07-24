@@ -6,7 +6,7 @@ com logins por papel (admin / vendedor / stock).
 - **Stack:** Next.js 14.2 (App Router, JavaScript puro) + Supabase (Postgres, Auth, Storage) + Vercel.
 - **Site público:** [serjohn.pt](https://serjohn.pt) lê o stock diretamente da view pública `v_stock_publico` (Supabase) e envia leads para `POST /api/leads/intake`.
 - **Extensão Chrome** (mobile.de): usa `GET /api/leads` e `POST /api/import-from-mobile` — mesmo contrato do endpoint antigo do site, agora aqui.
-- **PDF de proposta:** o Make é chamado via `MAKE_WEBHOOK_URL` no fim de cada importação mobile.de.
+- **PDF de proposta:** gerado pelo próprio CRM em `GET /api/propostas/[leadId]` (pdfkit, identidade Serjohn). Sem Make, sem Notion.
 
 ## Variáveis de ambiente
 
