@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { createAnonClient } from '@/lib/supabase/anon';
 import { lerAnuncioMobileDe, isMobileDeUrl, extraiDoHtml } from '@/lib/mobilede';
+import { aplicarAnuncio } from '@/lib/aplicar-anuncio';
 
 /**
  * Importação de um anúncio mobile.de feita pela própria plataforma — sem extensão.
@@ -116,57 +116,24 @@ export async function POST(request) {
     );
   }
 
-  // 2. Lead: existente ou nova
-  let leadId = body?.leadId || null;
-  let criada = false;
-  if (!leadId) {
-    const titulo = [car.marca, car.modelo].filter(Boolean).join(' ') || car.titulo || 'Anúncio mobile.de';
-    const { data, error } = await supabase
-      .from('leads')
-      .insert({
-        nome: String(body?.nome || '').trim() || `Proposta — ${titulo}`.slice(0, 120),
-        telefone: String(body?.telefone || '').trim() || null,
-        email: String(body?.email || '').trim() || null,
-        origem: 'mobile.de',
-        estado: 'Nova',
-        vendedor_id: session.user.id,
-      })
-      .select('id')
-      .single();
-    if (error) {
-      return Response.json({ error: 'Erro a criar a lead: ' + error.message }, { status: 500 });
-    }
-    leadId = data.id;
-    criada = true;
-  }
-
-  // 3. Preencher a lead com os dados do anúncio (mesma RPC usada pela extensão)
-  const anon = createAnonClient();
-  const { data: updated, error: rpcErr } = await anon.rpc('ext_import_update', {
-    p_secret: process.env.IMPORT_API_SECRET,
-    p_lead: leadId,
-    p: {
-      marca: car.marca,
-      modelo: car.modelo,
-      ano: car.ano,
-      kms: car.kms,
-      combustivel: car.combustivel,
-      valorVenda: car.valorVenda,
-      extras: car.extras,
-      mobileDeUrl: car.mobileDeUrl,
-      linkDrive: null,
-      fotos: car.photos.slice(0, 40),
-    },
-  });
-  if (rpcErr) {
-    return Response.json({ error: 'Erro a gravar na lead: ' + rpcErr.message }, { status: 500 });
+  // 2. Criar/preencher a lead
+  let r;
+  try {
+    r = await aplicarAnuncio(supabase, {
+      car,
+      leadId: body?.leadId || null,
+      nome: body?.nome,
+      telefone: body?.telefone,
+      email: body?.email,
+      userId: session.user.id,
+    });
+  } catch (err) {
+    return Response.json({ error: err.message }, { status: 500 });
   }
 
   return Response.json({
     ok: true,
-    leadId,
-    criada,
-    nome: updated?.nome || '',
+    ...r,
     car: {
       marca: car.marca,
       modelo: car.modelo,
@@ -176,6 +143,6 @@ export async function POST(request) {
       valorVenda: car.valorVenda,
       fotos: car.photos.length,
     },
-    propostaUrl: `/api/propostas/${leadId}`,
+    propostaUrl: `/api/propostas/${r.leadId}`,
   });
 }

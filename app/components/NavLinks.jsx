@@ -7,6 +7,7 @@ const LINKS = [
   { href: '/', label: 'Minha Área' },
   { href: '/leads', label: 'Leads' },
   { href: '/stock', label: 'Stock' },
+  { href: '/importar', label: 'Importar' },
   { href: '/tarefas', label: 'Tarefas' },
 ];
 

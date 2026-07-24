@@ -28,7 +28,11 @@ export default function ImportAnuncio({ leadId = null, compacto = false }) {
         body: JSON.stringify({ url: url.trim(), leadId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (!res.ok) {
+        const e = new Error(data.error || `HTTP ${res.status}`);
+        e.bloqueado = !!data.bloqueado;
+        throw e;
+      }
       const c = data.car || {};
       const resumo = [
         [c.marca, c.modelo].filter(Boolean).join(' '),
@@ -44,7 +48,7 @@ export default function ImportAnuncio({ leadId = null, compacto = false }) {
       if (data.criada) router.push(`/leads/${data.leadId}`);
       router.refresh();
     } catch (err) {
-      setMsg({ t: 'error', m: err.message });
+      setMsg({ t: 'error', m: err.message, bloqueado: !!err.bloqueado });
     } finally {
       setBusy(false);
     }
@@ -75,6 +79,14 @@ export default function ImportAnuncio({ leadId = null, compacto = false }) {
       {msg && (
         <p className={msg.t === 'error' ? 'error-msg' : 'ok-msg'} style={{ marginTop: 8 }}>
           {msg.m}
+          {msg.t === 'error' && msg.bloqueado && (
+            <>
+              {' '}
+              <a href="/importar" style={{ textDecoration: 'underline' }}>
+                Usar o marcador “Enviar para o Serjohn”
+              </a>
+            </>
+          )}
           {msg.t === 'ok' && msg.lead && (
             <>
               {' · '}
