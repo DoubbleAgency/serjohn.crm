@@ -60,24 +60,29 @@ export async function GET(request, { params }) {
   const cliente =
     lead.nome && !lead.nome.startsWith('Proposta —') ? lead.nome : null;
 
-  const pdf = await buildPropostaPdf({
-    titulo,
-    cliente,
-    ano: lead.proposta_ano,
-    km: lead.proposta_km,
-    combustivel: lead.proposta_combustivel,
-    preco: lead.valor_proposta,
-    descricao: lead.descricao_proposta,
-    fotos,
-    logo,
-  });
+  try {
+    const pdf = await buildPropostaPdf({
+      titulo,
+      cliente,
+      ano: lead.proposta_ano,
+      km: lead.proposta_km,
+      combustivel: lead.proposta_combustivel,
+      preco: lead.valor_proposta,
+      descricao: lead.descricao_proposta,
+      fotos,
+      logo,
+    });
 
-  const nomeFicheiro = `Proposta Serjohn — ${titulo}.pdf`.replace(/[/\\]/g, '-');
-  return new Response(pdf, {
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(nomeFicheiro)}`,
-      'Cache-Control': 'no-store',
-    },
-  });
+    const nomeFicheiro = `Proposta Serjohn — ${titulo}.pdf`.replace(/[/\\]/g, '-');
+    return new Response(pdf, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(nomeFicheiro)}`,
+        'Cache-Control': 'no-store',
+      },
+    });
+  } catch (err) {
+    console.error('[propostas] erro a gerar PDF:', err);
+    return Response.json({ error: 'Erro a gerar o PDF: ' + err.message }, { status: 500 });
+  }
 }
